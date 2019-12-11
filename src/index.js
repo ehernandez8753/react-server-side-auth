@@ -1,12 +1,99 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
-import App from './App';
-import * as serviceWorker from './serviceWorker';
+import React, { useState, useEffect } from 'react';
+import ReactDOM from "react-dom";
 
-ReactDOM.render(<App />, document.getElementById('root'));
+import axios from 'axios';
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.unregister();
+function View (props) {
+  const { screen, setScreen } = props;
+
+  const [data, setData] = useState();
+
+  const deleteCookie = async () => {
+    try {
+      await axios.get('/clear-cookie');
+      setScreen('auth');
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const getData = async () => {
+    try {
+      const res = await axios.get('/get-data');
+      console.log(res.data)
+      setData(res.data);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  return (
+    <div>
+      <p>{screen}</p>
+      <p>{data}</p>
+      <button onClick={getData}>Get Data</button>
+      <button onClick={deleteCookie}>Logout</button>
+    </div>
+  );
+}
+
+function App() {
+
+  const [screen, setScreen] = useState('auth');
+  const [username, setUsername] = useState();
+  const [password, setPassword] = useState();
+
+  const auth = async () => {
+    try {
+      const res = await axios.get('/authenticate', { auth: { username: `${username}`, password: `${password}` } });
+        console.log(res)
+      if (res.data.screen !== undefined) {
+        setScreen(res.data.screen);
+      }
+    } catch (e) {
+      console.log("Cannot proceed due to ",e);
+    }
+  };
+
+  const readCookie = async () => {
+    try {
+      const res = await axios.get('/read-cookie');
+      
+      if (res.data.screen !== undefined) {
+        setScreen(res.data.screen);
+      }
+    } catch (e) {
+      setScreen('auth');
+      console.log(e);
+    }
+  };
+
+  useEffect(() => {
+    readCookie();
+  }, []);
+
+  return (
+    <div className="App">
+      {screen === 'auth'
+        ? <div>
+            <label>Username: </label>
+            <br/>
+            <input type="text" onChange={e => setUsername(e.target.value)} />
+            <br/>
+            <label>Password: </label>
+            <br/>
+            <input type="password" onChange={e => setPassword(e.target.value)} />
+            <br/>
+            <button onClick={auth}>Login</button>
+          </div>
+        : <View screen={screen} setScreen={setScreen} />
+      }
+    </div>
+  );
+}
+
+export default App;
+
+
+const rootElement = document.getElementById("root");
+ReactDOM.render(<App />, rootElement);
